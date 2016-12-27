@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/activity_main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="geekband.yanjinyi1987.com.bluetoothcomm.MainActivity">
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="连接蓝牙"
+        android:id="@+id/connect_bt_device"
+        android:layout_marginBottom="5dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignBaseline="@+id/connect_bt_device"
+        android:textColor="@color/warning"
+        android:text="远程设备未连接..."
+        android:id="@+id/connection_status"/>
+
+    <ImageView
+        android:id="@+id/divider_1"
+        android:layout_width="match_parent"
+        android:layout_height="1px"
+        android:background="#444444"
+        android:layout_marginBottom="5dp"
+        android:layout_below="@+id/connect_bt_device"/>
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:rowCount="2"
+        android:columnCount="2"
+        android:useDefaultMargins="true"
+        android:layout_below="@+id/divider_1"
+        android:id="@+id/parameters">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="5dp">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/humidity"
+                android:layout_marginRight="5dp"
+                />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="空气湿度"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/humidity_value"
+                android:text="45%"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_gravity="right"
+            android:layout_marginBottom="5dp">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/soil_humidity"
+                android:layout_marginRight="5dp"
+                />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="土壤湿度"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/soil_humidity_value"
+                    android:text="45%"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/temperature"
+                android:layout_marginRight="5dp"
+                />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="空气温度"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/temperature_value"
+                    android:text="45%"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_gravity="right">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/sunlight"
+                android:layout_marginRight="5dp"
+                />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="光照强度"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/sunlight_value"
+                    android:text="45%"/>
+            </LinearLayout>
+        </LinearLayout>
+
+    </GridLayout>
+
+    <!--for debug-->
+    <!--<EditText-->
+        <!--android:id="@+id/AT_command_text"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_below="@+id/connect_bt_device"-->
+        <!--android:layout_alignParentStart="true"-->
+        <!--android:layout_toLeftOf="@+id/send_AT_command"-->
+        <!--android:layout_marginRight="5dp"-->
+        <!--android:maxLines="1"-->
+        <!--android:inputType="text"-->
+        <!--android:gravity="top"-->
+        <!--android:background="@drawable/bg_edittext"-->
+        <!--android:layout_alignBottom="@+id/send_AT_command"/>-->
+
+    <!--<Button-->
+        <!--android:id="@+id/send_AT_command"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_below="@+id/connect_bt_device"-->
+        <!--android:layout_alignParentEnd="true"-->
+        <!--android:text="发送"/>-->
+
+
+    <!--<EditText-->
+        <!--android:id="@+id/received_SPP_data_text"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="200dp"-->
+        <!--android:layout_below="@+id/send_AT_command"-->
+        <!--android:maxLines="100"-->
+        <!--android:inputType="textMultiLine"-->
+        <!--android:gravity="top"-->
+        <!--android:background="@drawable/bg_edittext"-->
+        <!--android:layout_marginTop="5dp"-->
+        <!--/>-->
+    <!--for debug-->
+    <ImageView
+        android:id="@+id/divider_2"
+        android:layout_width="match_parent"
+        android:layout_height="1px"
+        android:background="#444444"
+        android:layout_marginBottom="5dp"
+        android:layout_below="@+id/parameters"/>
+    <Button
+        android:id="@+id/read_remote_data"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="设置植物类型"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/parameters"
+        android:layout_marginRight="5dp"
+        android:layout_marginTop="5dp"/>
+
+    <Spinner
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/plant_spinner"
+        android:layout_toRightOf="@+id/read_remote_data"
+        android:layout_below="@+id/parameters"
+        android:layout_marginTop="5dp"/>
+
+    <Button
+        android:id="@+id/set_remote_data"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="发送灌溉参数"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/parameters"
+        android:layout_marginTop="5dp"/>
+
+    <ImageView
+        android:id="@+id/divider_listview"
+        android:layout_width="match_parent"
+        android:layout_height="1px"
+        android:background="#444444"
+        android:layout_marginTop="5dp"
+        android:layout_below="@+id/set_remote_data"/>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/divider_listview"
+        android:id="@+id/current_plant">
+
+        <ImageView
+            android:id="@+id/image_plant"
+            android:layout_width="200dp"
+            android:layout_height="150dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/image_plant"
+            android:textSize="40sp"
+            android:textColor="#000000"
+            android:id="@+id/text_name_plant"
+            android:layout_marginLeft="60dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="5dp"
+            android:layout_toRightOf="@+id/image_plant"
+            android:id="@+id/growth_time_text"
+            android:text="成熟度："
+            android:layout_marginBottom="5dp"/>
+
+        <Spinner
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/growth_time_spinner"
+            android:layout_alignLeft="@+id/growth_time_text"
+            android:layout_below="@+id/growth_time_text"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="备注："
+            android:layout_below="@+id/growth_time_spinner"
+            android:layout_alignLeft="@+id/growth_time_text"
+            android:id="@+id/comment_of_setting"/>
+
+        <EditText
+            android:layout_width="120dp"
+            android:layout_height="50dp"
+            android:layout_alignLeft="@+id/comment_of_setting"
+            android:background="@drawable/bg_edittext"
+            android:layout_below="@+id/comment_of_setting"
+            android:id="@+id/comment_of_setting_edit"/>
+
+        <Button
+            android:id="@+id/parameters_setting"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="参数管理"
+            android:layout_alignLeft="@+id/comment_of_setting"
+            android:layout_below="@+id/comment_of_setting_edit"
+            android:layout_marginTop="5dp"/>
+    </RelativeLayout>
+
+    <ListView
+        android:id="@+id/parameter_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/current_plant"/>
+</RelativeLayout>
