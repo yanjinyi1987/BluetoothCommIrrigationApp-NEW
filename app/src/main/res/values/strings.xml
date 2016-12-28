@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">BluetoothComm</string>
+    <string name="app_name">灌溉程序</string>
     <string name="parameter_name_1">A</string>
     <string name="parameter_name_2">B</string>
     <string name="parameter_name_3">C</string>

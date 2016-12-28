@@ -382,7 +382,7 @@ public class BluetoothConnection extends DialogFragment implements View.OnClickL
             //将mmSocket传递给MainActivity
             //manageConnectedSocket(mmSocket);
             //mBluetoothConnectionHandler.sendEmptyMessage(1); //连接成功
-            msg.what=1; //连接成功
+            msg.what=MainActivity.DEVICE_CONNECTED; //连接成功
             ArrayList<Object> btDeviceandConnectionInfo = new ArrayList<>();
             btDeviceandConnectionInfo.add(0,mmDevice);
             btDeviceandConnectionInfo.add(1,mmSocket);

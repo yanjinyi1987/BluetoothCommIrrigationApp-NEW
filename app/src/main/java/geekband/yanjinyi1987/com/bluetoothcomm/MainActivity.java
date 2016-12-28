@@ -11,32 +11,22 @@ import android.graphics.Color;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.IdRes;
-import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import org.w3c.dom.Text;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.List;
 
 import geekband.yanjinyi1987.com.bluetoothcomm.fragment.BluetoothConnection;
 
@@ -61,12 +51,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public int growth_time_index = 0;
 
     public static final String[] array_plants = {
+            "<--未设置-->",
             "土豆",
             "棉花",
             "小麦"
     };
 
     public @IdRes int[] images_plants = {
+            0,
             R.drawable.tudou,
             R.drawable.mianhua,
             R.drawable.xiaomai
@@ -75,18 +67,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public int plants_index = 0;
 
     // 初始值，温度系数，温度offset，湿度系数，光强系数
-    public String[] controlData = {"30","0.3","20","0.01","0.05"};
-    private ArrayList<String> parameter_name = new ArrayList<>();
-    private ArrayList<String> parameter_value = new ArrayList<>();
-    private ArrayList<String> parameter_default_value = new ArrayList<>();
+    public String[] controlData = {"0","0","30","0.3","20","0.01","0.05"};
+    public String[] controlData_mianhua = {"0","0","10","0.6","90","0.01","0.05"};
 
-    private ArrayList<ParameterData> parameterDatas = new ArrayList<>();
+    boolean isOver=false;
 
     //与fragmentDialog通信的Handler
     private Handler mMainActivityHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            BluetoothDevice mBluetoothDevice = null;
+            mBluetoothDevice = null;
             BluetoothSocket mBluetoothSocket=null;
             switch(msg.what) {
                 case DEVICE_CONNECTED:
@@ -102,28 +92,75 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     //检测当前植物类型与参数
 
                     //循环获取当前测量参数
+                    getControlData(mSSPRWThread);
+
+                    //getSensorData(mSSPRWThread);
                     break;
                 default:
                     break;
             }
         }
     };
+    //循环读取
+    Handler getSensorDataHandler = new Handler();
+    Runnable runnable = new Runnable() {
+        @Override
+        public void run() {
+            Log.i("Loop thread","A");
+            isOver=false;
+            mSSPRWThread.write("s".getBytes()); //发送读取命令
+            getSensorDataHandler.postDelayed(this,10*1000); //10s
+        }
+    };
 
+    private TextView mHumidityValue;
+    private TextView mSoilHumidityValue;
+    private TextView mTemperatureValue;
+    private TextView mSunlightValue;
+    private String strInitialValue;
+    private String strTempCoefficient;
+    private String strTempOffset;
+    private String strHumidityCoefficient;
+    private String strSunlightIntensity;
+    private BluetoothDevice mBluetoothDevice;
+    private Button mParametersSettingButton;
+
+    void getSensorData(SSPRWThread mSSPRWThread) {
+        Log.i("MainActivity","send command");
+        mSSPRWThread.write("s".getBytes());
+    }
+    void getControlData(SSPRWThread mSSPRWThread) {
+        mSSPRWThread.write("c".getBytes());
+    }
     //与读写线程通信的Handler
     private Handler mReadSSPHandler = new Handler() {
+        StringBuilder stringBuilder = new StringBuilder();
         @Override
         public void handleMessage(Message msg) {
             switch(msg.what) {
                 case MESSAGE_READ:
-                    int length = msg.arg1;
-                    byte[] info =(byte[])(msg.obj); //问题在于这里直接引用了buffer，而buffer的数据会被read覆盖，这样造成了问题。
-                    StringBuilder stringBuilder = new StringBuilder();
-                    for(int i=0;i<length;i++) {
-                        Log.i("byte in handler",String.valueOf((char)info[i]));
-                        stringBuilder.append((char)info[i]);
+                    if(isOver) {
+                        break;
                     }
-                    String strInfo = stringBuilder.toString();
-                    Log.i("MainActivity",strInfo);
+                    int length = msg.arg1;
+                    String strInfo =(String)(msg.obj); //问题在于这里直接引用了buffer，而buffer的数据会被read覆盖，这样造成了问题。
+                    Log.i("MainActivity READ",strInfo);
+                    stringBuilder.append(strInfo);
+                    if(strInfo.indexOf('x')!=-1) {
+                        isOver=true;
+                        String resultInfo = stringBuilder.toString();
+                        Log.i("Show result",resultInfo);
+                        if(resultInfo.indexOf('s')!=-1) {
+                            setUISensorData(resultInfo);
+                            stringBuilder.delete(0,stringBuilder.length());//清除StringBuilder
+                        }
+                        else if(resultInfo.indexOf('c')!=-1) {
+                            setUIControlData(resultInfo);
+                            Log.i("get control data",resultInfo);
+                            getSensorDataHandler.postDelayed(runnable,10*1000); //10s后isOver设为false
+                            stringBuilder.delete(0,stringBuilder.length());//清除StringBuilder
+                        }
+                    }
                     //mReceivedSPPDataText.setText(mReceivedSPPDataText.getText()+strInfo);
                     //读取远程数据
                     break;
@@ -132,6 +169,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
     };
+
+    void setUISensorData(String strInfo) {
+        String[] sensorData = strInfo.split(",");
+        mSoilHumidityValue.setText(sensorData[0].substring(1)+"%");
+        mSunlightValue.setText(sensorData[1].substring(1)+"%");
+        mTemperatureValue.setText(sensorData[2].substring(1,3)+"℃");
+        mHumidityValue.setText(sensorData[3].substring(1,3)+"%");
+    }
+
+    void setUIControlData(String strInfo) {
+        String[] controlData = strInfo.split(",");
+        // 初始值，温度系数，温度offset，湿度系数，光强系数
+        String plant_type = controlData[0].substring(1);
+        plants_index = Float.valueOf(plant_type).intValue();
+        mSpinnerPlant.setSelection(plants_index);
+        String growth_time = controlData[1].substring(1);
+        growth_time_index = Float.valueOf(growth_time).intValue();
+        mSpinnerGrowthTime.setSelection(growth_time_index);
+        strInitialValue = controlData[2].substring(1);
+        strTempCoefficient = controlData[3].substring(1);
+        strTempOffset = controlData[4].substring(1);
+        strHumidityCoefficient = controlData[5].substring(1);
+        strSunlightIntensity = controlData[6].substring(1);
+    }
 
     //处理蓝牙接收器的状态变化
     /**
@@ -171,10 +232,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     };
     private Button mBTConnectionButton;
     private SSPRWThread mSSPRWThread;
-    private Button mReadRemoteDataButton;
+    private TextView mReadRemoteDataButton;
     private Button mSetRemoteDataButton;
-    private ListView mParameterListView;
-    private ParameterArrayAdapter parameterArrayAdapter;
+    //private ListView mParameterListView;
+    //private ParameterArrayAdapter parameterArrayAdapter;
     private TextView mConnectionStatus;
     private Spinner mSpinnerGrowthTime,mSpinnerPlant;
     public ImageView mPlantImage;
@@ -239,6 +300,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onDestroy() {
         Log.i("MainActivity","onDestroy");
         super.onDestroy();
+        getSensorDataHandler.removeCallbacks(runnable);
         unregisterReceiver(mBroadcastReceiver);
         if(rwReady==true) {
             mConnectedBTDevices.clear();
@@ -275,12 +337,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     {
         mBTConnectionButton = (Button) findViewById(R.id.connect_bt_device);
         mConnectionStatus = (TextView) findViewById(R.id.connection_status);
-        mReadRemoteDataButton = (Button) findViewById(R.id.read_remote_data);
+        mReadRemoteDataButton = (TextView) findViewById(R.id.read_remote_data);
         mSetRemoteDataButton = (Button) findViewById(R.id.set_remote_data);
+        mParametersSettingButton = (Button) findViewById(R.id.parameters_setting);
+
+        //空气湿度
+        mHumidityValue = (TextView) findViewById(R.id.humidity_value);
+        //土壤湿度
+        mSoilHumidityValue = (TextView) findViewById(R.id.soil_humidity_value);
+        //空气温度
+        mTemperatureValue = (TextView) findViewById(R.id.temperature_value);
+        //光照强度
+        mSunlightValue = (TextView) findViewById(R.id.sunlight_value);
+
 
         mBTConnectionButton.setOnClickListener(this);
         mReadRemoteDataButton.setOnClickListener(this);
         mSetRemoteDataButton.setOnClickListener(this);
+        mParametersSettingButton.setOnClickListener(this);
 
         //growth time spinner
         mSpinnerGrowthTime = (Spinner) findViewById(R.id.growth_time_spinner);
@@ -292,7 +366,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mSpinnerGrowthTime.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-
+                growth_time_index = position;
             }
 
             @Override
@@ -314,7 +388,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 plants_index = position;
                 mPlantImage.setImageResource(images_plants[plants_index]);
-                mPlantText.setText(array_plants[plants_index]);
+                if(plants_index==0) {
+                    mPlantText.setText("");
+                }
+                else {
+                    mPlantText.setText(array_plants[plants_index]);
+                }
             }
 
             @Override
@@ -330,61 +409,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         mPlantImage.setImageResource(images_plants[plants_index]);
         mPlantText.setText(array_plants[plants_index]);
-//        mParameterListView = (ListView) findViewById(R.id.parameter_list);
-//        //debug 手动设置parameter数据
-//        parameterDatas.add(new ParameterData("A:","100","100",1));
-//        parameterDatas.add(new ParameterData("B:","100","100",2));
-//        parameterDatas.add(new ParameterData("C:","100","100",3));
-//        parameterDatas.add(new ParameterData("D:","100","100",4));
-//        parameterDatas.add(new ParameterData("A:","100","100",1));
-//        parameterDatas.add(new ParameterData("B:","100","100",2));
-//        parameterDatas.add(new ParameterData("C:","100","100",3));
-//        parameterDatas.add(new ParameterData("D:","100","100",4));
-//        parameterDatas.add(new ParameterData("A:","100","100",1));
-//        parameterDatas.add(new ParameterData("B:","100","100",2));
-//        parameterDatas.add(new ParameterData("C:","100","100",3));
-//        parameterDatas.add(new ParameterData("D:","100","100",4));
-//        parameterDatas.add(new ParameterData("A:","100","100",1));
-//        parameterDatas.add(new ParameterData("B:","100","100",2));
-//        parameterDatas.add(new ParameterData("C:","100","100",3));
-//        parameterDatas.add(new ParameterData("D:","100","100",4));
-//        parameterDatas.add(new ParameterData("A:","100","100",1));
-//        parameterDatas.add(new ParameterData("B:","100","100",2));
-//        parameterDatas.add(new ParameterData("C:","100","100",3));
-//        parameterDatas.add(new ParameterData("D:","100","100",4));
-//        parameterDatas.add(new ParameterData("A:","100","100",1));
-//        parameterDatas.add(new ParameterData("B:","100","100",2));
-//        parameterDatas.add(new ParameterData("C:","100","100",3));
-//        parameterDatas.add(new ParameterData("D:","100","100",4));
-//        parameterDatas.add(new ParameterData("A:","100","100",1));
-//        parameterDatas.add(new ParameterData("B:","100","100",2));
-//        parameterDatas.add(new ParameterData("C:","100","100",3));
-//        parameterDatas.add(new ParameterData("D:","100","100",4));
-//        parameterDatas.add(new ParameterData("A:","100","100",1));
-//        parameterDatas.add(new ParameterData("B:","100","100",2));
-//        parameterDatas.add(new ParameterData("C:","100","100",3));
-//        parameterDatas.add(new ParameterData("D:","100","100",4));
-//
-//        parameterArrayAdapter = new ParameterArrayAdapter(this,
-//                R.layout.parameter_item,
-//                parameterDatas);
-//        mParameterListView.setAdapter(parameterArrayAdapter);
-        //disableViews();
+        disableViews();
     }
 
     void enableViews() {
         Log.i("MainActivity:","enableViews");
         mReadRemoteDataButton.setEnabled(true);
         mSetRemoteDataButton.setEnabled(true);
-        mParameterListView.setEnabled(true);
-        mConnectionStatus.setText("远程设备已经连接！");
-        mConnectionStatus.setTextColor(Color.rgb(0,0,0));
+        //mParameterListView.setEnabled(true);
+        mConnectionStatus.setText("远程设备"+mBluetoothDevice.getName()+"已经连接！");
+        mConnectionStatus.setTextColor(Color.rgb(0,0,0)); //设置为黑色
     }
 
     void disableViews() {
-        mReadRemoteDataButton.setEnabled(false);
+        //mReadRemoteDataButton.setEnabled(false);
         mSetRemoteDataButton.setEnabled(false);
-        mParameterListView.setEnabled(false);
+        //mParameterListView.setEnabled(false);
     }
     //接受传回的结果肯定是异步的哦！
     @Override
@@ -408,20 +448,50 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.read_remote_data:
                 //读取远程数据
                 //更新list
-                parameterArrayAdapter.notifyDataSetChanged();
+                //parameterArrayAdapter.notifyDataSetChanged();
                 break;
             case R.id.set_remote_data:
-                //获取远程数据
-                for (int i = 0; i < 10; i++) {
-                    Log.i("MainActivity","data "+i+" is "+parameterDatas.get(i).value);
-                }
-
                 //设置远程数据
+                getSensorDataHandler.removeCallbacks(runnable); //停止读取蓝牙sensor data的线程
+                mSSPRWThread.write(buildControlCommand().getBytes());
+                getSensorDataHandler.postDelayed(runnable,10*1000);//10s。再次启动，延时10s
+
+            case R.id.parameters_setting:
+                Log.i("MainActivity","Goto next Activity");
+                startActivity(new Intent(MainActivity.this,ParameterActivity.class)); //打开参数设置界面
                 break;
             default:
                 break;
         }
 
+    }
+
+    String buildControlCommand() {
+        if(plants_index==2) {
+            strInitialValue = controlData_mianhua[2];
+            strTempCoefficient = controlData_mianhua[3];
+            strTempOffset = controlData_mianhua[4];
+            strHumidityCoefficient = controlData_mianhua[5];
+            strSunlightIntensity = controlData_mianhua[6];
+        }
+        else {
+            strInitialValue = controlData[2];
+            strTempCoefficient = controlData[3];
+            strTempOffset = controlData[4];
+            strHumidityCoefficient = controlData[5];
+            strSunlightIntensity = controlData[6];
+        }
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("w");
+        stringBuilder.append(strInitialValue+",");
+        stringBuilder.append(strTempCoefficient+",");
+        stringBuilder.append(strTempOffset+",");
+        stringBuilder.append(strHumidityCoefficient+",");
+        stringBuilder.append(strSunlightIntensity+",");
+        stringBuilder.append(String.valueOf(plants_index)+",");
+        stringBuilder.append(String.valueOf(growth_time_index));
+        Log.i("controlCommand",stringBuilder.toString());
+        return stringBuilder.toString();
     }
 
     private class SSPRWThread extends Thread {
@@ -450,13 +520,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             int bytes; // bytes returned from read()
 
             // Keep listening to the InputStream until an exception occurs
-            StringBuilder stringBuilder = new StringBuilder();
             while (true) {
                 try {
                     // Read from the InputStream
                     bytes = mmInStream.read(buffer); //这种问题应该怎么处理呢？
+                    Log.i("MainActivitylength",Integer.toString(bytes));
+                    buffer[bytes]=0;
                     // Send the obtained bytes to the UI activity
-                    mReadSSPHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer)
+                    Log.i("MainActivity Thread",new String(buffer,0,bytes));
+                    mReadSSPHandler.obtainMessage(MESSAGE_READ, bytes, -1, new String(buffer,0,bytes))
                             .sendToTarget();
                 } catch (IOException e) {
                     break;
@@ -477,88 +549,5 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mmSocket.close();
             } catch (IOException e) { }
         }
-    }
-}
-
-class ParameterData{
-    public String name;
-    public String value;
-    public String defaultValue;
-    public int index;
-
-    public ParameterData(String name, String value, String defaultValue, int index) {
-        this.name = name;
-        this.value = value;
-        this.defaultValue = defaultValue;
-        this.index = index;
-    }
-}
-//http://www.webplusandroid.com/creating-listview-with-edittext-and-textwatcher-in-android/
-class ParameterArrayAdapter extends ArrayAdapter<ParameterData> {
-    int resourceId;
-    Context context;
-    List<ParameterData> parameterDatas;
-    public ParameterArrayAdapter(Context context, int resource, List<ParameterData> objects) {
-        super(context, resource, objects);
-        resourceId = resource;
-        this.context = context;
-        parameterDatas = objects;
-    }
-    @NonNull
-    @Override
-    public View getView(final int position, View convertView, ViewGroup parent) {
-        final ParameterData parameterData = getItem(position);
-        View view;
-        final ParentViewHolder parentViewHolder;
-        if(convertView==null) {
-            view = LayoutInflater.from(context).inflate(resourceId,null);
-            parentViewHolder = new ParentViewHolder();
-            parentViewHolder.parameter_name = (TextView) view.findViewById(R.id.parameter_text);
-            parentViewHolder.parameter_value = (EditText) view.findViewById(R.id.parameter_value);
-            parentViewHolder.parameter_default_value = (EditText) view.findViewById(R.id.parameter_default_value);
-            parentViewHolder.sequence_number = (TextView)view.findViewById(R.id.sequence_number);
-            parentViewHolder.parameter_default_value.setKeyListener(null);
-            parentViewHolder.parameter_value.addTextChangedListener(new TextWatcher() {
-                @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-                }
-
-                @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-                }
-
-                @Override
-                public void afterTextChanged(Editable s) {
-                    //由于View的重用，我们会发现text会发生变化，比如我改了第一个，但是重画时，text的值会被
-                    //setText改变，但是此时我们应该改变的是position上的value
-                    Log.i("MainActivity","text changed "+position+" "+s.toString());
-                    parameterDatas.get(parentViewHolder.ref).value = s.toString();
-//                    parameterDatas.get(parentViewHolder.ref).defaultValue = s.toString();
-//                    parentViewHolder.parameter_default_value.setText(s);
-                }
-            });
-            view.setTag(parentViewHolder);
-        }
-        else {
-            view = convertView;
-            parentViewHolder = (ParentViewHolder) view.getTag();
-            Log.i("MainActivity","position is "+position+" "+parentViewHolder.ref);
-        }
-        parentViewHolder.ref = position;
-        parentViewHolder.parameter_name.setText(parameterDatas.get(position).name);
-        parentViewHolder.parameter_value.setText(parameterDatas.get(position).value);
-        parentViewHolder.parameter_default_value.setText(parameterDatas.get(position).defaultValue);
-        parentViewHolder.sequence_number.setText(String.valueOf(position));
-        return view;
-    }
-
-    class ParentViewHolder {
-        TextView parameter_name;
-        EditText parameter_value;
-        EditText parameter_default_value;
-        TextView sequence_number;
-        int ref;
     }
 }

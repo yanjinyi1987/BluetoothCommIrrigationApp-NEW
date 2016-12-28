@@ -67,7 +67,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/humidity_value"
-                android:text="45%"/>
+                android:text="--%"/>
             </LinearLayout>
         </LinearLayout>
 
@@ -97,7 +97,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:id="@+id/soil_humidity_value"
-                    android:text="45%"/>
+                    android:text="--.--%"/>
             </LinearLayout>
         </LinearLayout>
 
@@ -125,7 +125,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:id="@+id/temperature_value"
-                    android:text="45%"/>
+                    android:text="--"/>
             </LinearLayout>
         </LinearLayout>
 
@@ -154,7 +154,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:id="@+id/sunlight_value"
-                    android:text="45%"/>
+                    android:text="--.--%"/>
             </LinearLayout>
         </LinearLayout>
 
@@ -203,7 +203,7 @@
         android:background="#444444"
         android:layout_marginBottom="5dp"
         android:layout_below="@+id/parameters"/>
-    <Button
+    <TextView
         android:id="@+id/read_remote_data"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -301,10 +301,4 @@
             android:layout_below="@+id/comment_of_setting_edit"
             android:layout_marginTop="5dp"/>
     </RelativeLayout>
-
-    <ListView
-        android:id="@+id/parameter_list"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/current_plant"/>
 </RelativeLayout>
