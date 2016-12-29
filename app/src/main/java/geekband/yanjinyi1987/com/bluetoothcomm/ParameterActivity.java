@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Spinner;
@@ -75,6 +76,11 @@ public class ParameterActivity extends AppCompatActivity implements View.OnClick
 
     void initViews() {
         //Buttons
+        Button mWriteToDatabaseButton = (Button) findViewById(R.id.write_to_database);
+        Button mReturnToMainActivityButton = (Button) findViewById(R.id.return_to_mainactivity);
+
+        mWriteToDatabaseButton.setOnClickListener(this);
+        mReturnToMainActivityButton.setOnClickListener(this);
 
         //ListView
         mParameterListView = (ListView) findViewById(R.id.parameter_list);
@@ -132,7 +138,14 @@ public class ParameterActivity extends AppCompatActivity implements View.OnClick
 
     @Override
     public void onClick(View v) {
-
+        switch(v.getId()) {
+            case R.id.write_to_database:
+                break;
+            case R.id.return_to_mainactivity:
+                break;
+            default:
+                break;
+        }
     }
 }
 

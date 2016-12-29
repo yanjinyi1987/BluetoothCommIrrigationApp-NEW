@@ -301,6 +301,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.i("MainActivity","onDestroy");
         super.onDestroy();
         getSensorDataHandler.removeCallbacks(runnable);
+        mBTConnectionButton.setEnabled(true);
         unregisterReceiver(mBroadcastReceiver);
         if(rwReady==true) {
             mConnectedBTDevices.clear();
@@ -419,12 +420,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //mParameterListView.setEnabled(true);
         mConnectionStatus.setText("远程设备"+mBluetoothDevice.getName()+"已经连接！");
         mConnectionStatus.setTextColor(Color.rgb(0,0,0)); //设置为黑色
+        mBTConnectionButton.setEnabled(false);
     }
 
     void disableViews() {
         //mReadRemoteDataButton.setEnabled(false);
         mSetRemoteDataButton.setEnabled(false);
         //mParameterListView.setEnabled(false);
+        mBTConnectionButton.setEnabled(true);
     }
     //接受传回的结果肯定是异步的哦！
     @Override
@@ -455,6 +458,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 getSensorDataHandler.removeCallbacks(runnable); //停止读取蓝牙sensor data的线程
                 mSSPRWThread.write(buildControlCommand().getBytes());
                 getSensorDataHandler.postDelayed(runnable,10*1000);//10s。再次启动，延时10s
+                break;
 
             case R.id.parameters_setting:
                 Log.i("MainActivity","Goto next Activity");
