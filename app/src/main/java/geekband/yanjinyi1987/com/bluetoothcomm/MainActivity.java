@@ -4,11 +4,14 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.support.annotation.IdRes;
 import android.support.v7.app.AppCompatActivity;
@@ -28,12 +31,14 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 
+import geekband.yanjinyi1987.com.bluetoothcomm.Database.DBService;
 import geekband.yanjinyi1987.com.bluetoothcomm.fragment.BluetoothConnection;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
     public static final int DEVICE_CONNECTED = 1;
     public static final int MESSAGE_READ=0;
+    public static final String TAG_SERVICE_BINDER = "ServiceBinder";
     private BluetoothAdapter mBluetoothAdapter;
     private boolean noBluetooth;
     private boolean bluetoothDisable;
@@ -101,6 +106,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         }
     };
+
+    //database service
+    public boolean onBound = false;
+    public ServiceConnection mServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mLocalBinder = (DBService.LocalBinder) service;
+            mDBService = mLocalBinder.getService();
+            onBound=true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            onBound=false;
+        }
+    };
+
     //循环读取
     Handler getSensorDataHandler = new Handler();
     Runnable runnable = new Runnable() {
@@ -124,6 +146,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private String strSunlightIntensity;
     private BluetoothDevice mBluetoothDevice;
     private Button mParametersSettingButton;
+    private DBService mDBService;
+    private DBService.LocalBinder mLocalBinder;
 
     void getSensorData(SSPRWThread mSSPRWThread) {
         Log.i("MainActivity","send command");
@@ -294,6 +318,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         intentFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
         //注册接受器
         registerReceiver(mBroadcastReceiver,intentFilter);
+        //开启数据库服务
+        bindService(new Intent(MainActivity.this,DBService.class),mServiceConnection,BIND_AUTO_CREATE);
     }
 
     @Override
@@ -307,6 +333,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             mConnectedBTDevices.clear();
             mSSPRWThread.cancel();
         }
+        unbindService(mServiceConnection);
     }
 
     /*
@@ -462,7 +489,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             case R.id.parameters_setting:
                 Log.i("MainActivity","Goto next Activity");
-                startActivity(new Intent(MainActivity.this,ParameterActivity.class)); //打开参数设置界面
+                Intent intent = new Intent(MainActivity.this,ParameterActivity.class);
+                Bundle sendDBService = new Bundle();
+                sendDBService.putBinder(TAG_SERVICE_BINDER,mLocalBinder);
+                intent.putExtra("sendService",sendDBService);
+                startActivity(intent); //打开参数设置界面
                 break;
             default:
                 break;

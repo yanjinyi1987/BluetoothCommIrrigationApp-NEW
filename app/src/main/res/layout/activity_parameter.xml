@@ -10,10 +10,35 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="geekband.yanjinyi1987.com.bluetoothcomm.ParameterActivity">
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="新建植物"
+        android:id="@+id/new_plant_button"
+        android:layout_alignParentLeft="true"
+        android:layout_marginBottom="10dp"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="查询参数"
+        android:id="@+id/search_parameters"
+        android:layout_alignParentRight="true"
+        android:layout_marginBottom="10dp"/>
+
+    <ImageView
+        android:id="@+id/divider_in_parameter_1"
+        android:layout_width="match_parent"
+        android:layout_height="1px"
+        android:background="#444444"
+        android:layout_marginBottom="10dp"
+        android:layout_below="@+id/new_plant_button" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="植物名称："
+        android:layout_below="@+id/divider_in_parameter_1"
         android:id="@+id/plant_text_for_parameters"
         android:layout_marginRight="5dp"/>
 
@@ -22,6 +47,7 @@
         android:layout_height="wrap_content"
         android:layout_toRightOf="@+id/plant_text_for_parameters"
         android:id="@+id/plant_spinner_for_parameters"
+        android:layout_below="@+id/divider_in_parameter_1"
         android:layout_marginRight="5dp"/>
 
     <TextView
@@ -29,6 +55,7 @@
         android:layout_height="wrap_content"
         android:text="成熟度："
         android:layout_toRightOf="@+id/plant_spinner_for_parameters"
+        android:layout_below="@+id/divider_in_parameter_1"
         android:id="@+id/growth_time_text_for_parameters"
         android:layout_marginRight="5dp"/>
 
@@ -36,6 +63,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_toRightOf="@+id/growth_time_text_for_parameters"
+        android:layout_below="@+id/divider_in_parameter_1"
         android:id="@+id/growth_time_spinner_for_parameters" />
 
     <ListView

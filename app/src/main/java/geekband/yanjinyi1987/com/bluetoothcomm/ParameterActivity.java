@@ -1,6 +1,9 @@
 package geekband.yanjinyi1987.com.bluetoothcomm;
 
 import android.content.Context;
+import android.content.Intent;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -21,7 +24,11 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
+import geekband.yanjinyi1987.com.bluetoothcomm.Database.DBService;
+import geekband.yanjinyi1987.com.bluetoothcomm.fragment.NewPlantFragment;
+
 public class ParameterActivity extends AppCompatActivity implements View.OnClickListener{
+    public static final int UPDATE_UI=0;
     private ListView mParameterListView;
     private ParameterArrayAdapter parameterArrayAdapter;
 
@@ -66,21 +73,63 @@ public class ParameterActivity extends AppCompatActivity implements View.OnClick
     private int growth_time_index=0;
     private int plants_index = 0;
 
+
+    private Handler hEditPlantHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch(msg.what) {
+                case UPDATE_UI:
+                    String newPlantName = (String)msg.obj;
+                    array_plants.add(newPlantName);
+                    spinnerAdapterForPlant.notifyDataSetChanged();
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+    private ArrayAdapter<String> spinnerAdapterForPlant;
+    private Button mWriteToDatabaseButton;
+    private Button mReturnToMainActivityButton;
+    private Button mNewPlantButton;
+    private Button mSearchParametersButton;
+
+    private DBService mDBService;
+    private DBService.LocalBinder mLocalBinder;
+    public boolean gotService = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.i("ParameterActivity","OnCreate");
         setContentView(R.layout.activity_parameter);
+        Intent serviceIntent = getIntent();
+        if(serviceIntent!=null) {
+            mLocalBinder = (DBService.LocalBinder) serviceIntent.getExtras().getBinder(MainActivity.TAG_SERVICE_BINDER);
+            if(mLocalBinder!=null) {
+                mDBService = mLocalBinder.getService();
+                gotService=true;
+            }
+            else {
+                gotService=false;
+            }
+        }
+        else {
+            gotService=false;
+        }
         initViews();
     }
 
     void initViews() {
         //Buttons
-        Button mWriteToDatabaseButton = (Button) findViewById(R.id.write_to_database);
-        Button mReturnToMainActivityButton = (Button) findViewById(R.id.return_to_mainactivity);
+        mWriteToDatabaseButton = (Button) findViewById(R.id.write_to_database);
+        mReturnToMainActivityButton = (Button) findViewById(R.id.return_to_mainactivity);
+        mNewPlantButton = (Button) findViewById(R.id.new_plant_button);
+        mSearchParametersButton = (Button) findViewById(R.id.search_parameters);
 
         mWriteToDatabaseButton.setOnClickListener(this);
         mReturnToMainActivityButton.setOnClickListener(this);
+        mNewPlantButton.setOnClickListener(this);
+        mSearchParametersButton.setOnClickListener(this);
 
         //ListView
         mParameterListView = (ListView) findViewById(R.id.parameter_list);
@@ -114,22 +163,30 @@ public class ParameterActivity extends AppCompatActivity implements View.OnClick
         mSpinnerGrowthTime.setVisibility(View.VISIBLE);
 
         //plant spinner
-        array_plants.add("<新建植物>");
+        array_plants.add("一人");
+        //get the plant in database and add to array_plants
+
+
+        //================================================
         mSpinnerPlant = (Spinner) findViewById(R.id.plant_spinner_for_parameters);
-        ArrayAdapter<String> spinnerAdapterForPlant = new ArrayAdapter<>(this,
+        spinnerAdapterForPlant = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item,
                 array_plants);
         spinnerAdapterForPlant.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         mSpinnerPlant.setAdapter(spinnerAdapterForPlant);
+        spinnerAdapterForPlant.notifyDataSetChanged();
         mSpinnerPlant.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Log.i("ParameterAtivity","Show dialog");
+                //如果选择的项与当前的项是一样的，那么这个动作可能被覆盖，如何消除这一点呢？
+                //这个问题好像无法规避，所以就不选择这种方式新建植物了
                 plants_index = position;
-                //如果选择新建植物，那么弹出对话框输入名称并检测数据库是否重名，如果重名，直接跳转到现有的名字
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
+                Log.i("ParameterAtivity","Nothing selected");
 
             }
         });
@@ -142,6 +199,14 @@ public class ParameterActivity extends AppCompatActivity implements View.OnClick
             case R.id.write_to_database:
                 break;
             case R.id.return_to_mainactivity:
+                finish();
+                break;
+            case R.id.new_plant_button:
+                //如果选择新建植物，那么弹出对话框输入名称并检测数据库是否重名，如果重名，直接跳转到现有的名字
+                NewPlantFragment newPlantFragment = NewPlantFragment.newInstance(hEditPlantHandler);
+                newPlantFragment.show(getFragmentManager(), "输入新植物");
+                break;
+            case R.id.search_parameters:
                 break;
             default:
                 break;
@@ -203,7 +268,7 @@ class ParameterArrayAdapter extends ArrayAdapter<ParameterData> {
                 public void afterTextChanged(Editable s) {
                     //由于View的重用，我们会发现text会发生变化，比如我改了第一个，但是重画时，text的值会被
                     //setText改变，但是此时我们应该改变的是position上的value
-                    Log.i("MainActivity","text changed "+position+" "+s.toString());
+                    //Log.i("MainActivity","text changed "+position+" "+s.toString());
                     parameterDatas.get(parentViewHolder.ref).value = s.toString();
 //                    parameterDatas.get(parentViewHolder.ref).defaultValue = s.toString();
 //                    parentViewHolder.parameter_default_value.setText(s);
@@ -214,7 +279,7 @@ class ParameterArrayAdapter extends ArrayAdapter<ParameterData> {
         else {
             view = convertView;
             parentViewHolder = (ParentViewHolder) view.getTag();
-            Log.i("MainActivity","position is "+position+" "+parentViewHolder.ref);
+            //Log.i("MainActivity","position is "+position+" "+parentViewHolder.ref);
         }
         parentViewHolder.ref = position;
         parentViewHolder.parameter_name.setText(parameterDatas.get(position).name);

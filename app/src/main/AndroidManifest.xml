@@ -8,6 +8,9 @@
     <uses-permission-sdk-23 android:name="android.permission.BLUETOOTH" />
     <uses-permission-sdk-23 android:name="android.permission.BLUETOOTH_ADMIN" />
 
+    <!-- To access Google+ APIs: -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -23,7 +26,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".ParameterActivity"></activity>
+        <activity android:name=".ParameterActivity" />
+
+        <service android:name=".Database.DBService"/>
     </application>
 
 </manifest>
