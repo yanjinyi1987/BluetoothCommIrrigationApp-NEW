@@ -20,6 +20,7 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +67,7 @@ public class ParameterActivity extends AppCompatActivity implements View.OnClick
             "    10月" ,"10.5月"  ,"    11月" ,"11.5月"
     };
 
-    private ArrayList<String> array_plants = new ArrayList<>();
+    private ArrayList<String> array_plants = null;
     private Spinner mSpinnerGrowthTime;
     private Spinner mSpinnerPlant;
 
@@ -79,6 +80,7 @@ public class ParameterActivity extends AppCompatActivity implements View.OnClick
         public void handleMessage(Message msg) {
             switch(msg.what) {
                 case UPDATE_UI:
+                    Log.i("ParameterActivity","UI update");
                     String newPlantName = (String)msg.obj;
                     array_plants.add(newPlantName);
                     spinnerAdapterForPlant.notifyDataSetChanged();
@@ -104,8 +106,10 @@ public class ParameterActivity extends AppCompatActivity implements View.OnClick
         setContentView(R.layout.activity_parameter);
         Intent serviceIntent = getIntent();
         if(serviceIntent!=null) {
-            mLocalBinder = (DBService.LocalBinder) serviceIntent.getExtras().getBinder(MainActivity.TAG_SERVICE_BINDER);
+            Log.i("ParameterActivity","OnCreate got Intent");
+            mLocalBinder = (DBService.LocalBinder) (serviceIntent.getBundleExtra("sendService").getBinder(MainActivity.TAG_SERVICE_BINDER));
             if(mLocalBinder!=null) {
+                Log.i("ParameterActivity","OnCreate got mLocalBinder");
                 mDBService = mLocalBinder.getService();
                 gotService=true;
             }
@@ -163,10 +167,15 @@ public class ParameterActivity extends AppCompatActivity implements View.OnClick
         mSpinnerGrowthTime.setVisibility(View.VISIBLE);
 
         //plant spinner
-        array_plants.add("一人");
+        //array_plants.add("一人");
         //get the plant in database and add to array_plants
-
-
+        ArrayList<String> plantsListFromDB = (ArrayList<String>) mDBService.getPlantsList();
+        if(plantsListFromDB!=null) {
+            array_plants = new ArrayList<>(plantsListFromDB);
+        }
+        else {
+            array_plants = new ArrayList<>();
+        }
         //================================================
         mSpinnerPlant = (Spinner) findViewById(R.id.plant_spinner_for_parameters);
         spinnerAdapterForPlant = new ArrayAdapter<>(this,
@@ -174,7 +183,7 @@ public class ParameterActivity extends AppCompatActivity implements View.OnClick
                 array_plants);
         spinnerAdapterForPlant.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         mSpinnerPlant.setAdapter(spinnerAdapterForPlant);
-        spinnerAdapterForPlant.notifyDataSetChanged();
+        //spinnerAdapterForPlant.notifyDataSetChanged();
         mSpinnerPlant.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -192,23 +201,57 @@ public class ParameterActivity extends AppCompatActivity implements View.OnClick
         });
         mSpinnerPlant.setVisibility(View.VISIBLE);
     }
-
+    ArrayList<String> getIrrigationParameters() {
+        ArrayList<String> parametersList = new ArrayList<>();
+        for (int i = 0; i < parameter_count; i++) {
+            parametersList.add(parameterDatas.get(i).value);
+        }
+        return parametersList;
+    }
     @Override
     public void onClick(View v) {
         switch(v.getId()) {
             case R.id.write_to_database:
+                if(mDBService.insertIrrigationParameters(array_plants.get(plants_index),
+                        growth_time_index,getIrrigationParameters())) {
+                    Toast.makeText(ParameterActivity.this,"写入参数到数据库成功",Toast.LENGTH_LONG).show();
+                }
+                else {
+                    Toast.makeText(ParameterActivity.this,"写入参数到数据库失败",Toast.LENGTH_LONG).show();
+                }
                 break;
             case R.id.return_to_mainactivity:
                 finish();
                 break;
             case R.id.new_plant_button:
                 //如果选择新建植物，那么弹出对话框输入名称并检测数据库是否重名，如果重名，直接跳转到现有的名字
-                NewPlantFragment newPlantFragment = NewPlantFragment.newInstance(hEditPlantHandler);
+                NewPlantFragment newPlantFragment = NewPlantFragment.newInstance(hEditPlantHandler,mDBService);
                 newPlantFragment.show(getFragmentManager(), "输入新植物");
                 break;
             case R.id.search_parameters:
+                if(array_plants.isEmpty()==false) {
+                    ArrayList<String> parametersList = (ArrayList<String>) mDBService.getIrrigationParameters(array_plants.get(plants_index),
+                            growth_time_index);
+                    
+                    if(parametersList!=null) {
+                        //显示在listview中
+                        for (int i = 0; i < parameter_count; i++) {
+                            parameterDatas.get(i).value = parametersList.get(i);
+                            parameterDatas.get(i).defaultValue = parametersList.get(i);
+                        }
+                        parameterArrayAdapter.notifyDataSetChanged();
+                    }
+                    else {
+                        //提示查询失败
+                        Toast.makeText(ParameterActivity.this, "植物灌溉参数查询失败", Toast.LENGTH_SHORT).show();
+                    }
+                }
+                else {
+                    Toast.makeText(ParameterActivity.this, "植物列表为空", Toast.LENGTH_SHORT).show();
+                }
                 break;
             default:
+                Log.i("ParameterActivity","Anything strange!");
                 break;
         }
     }
@@ -281,6 +324,7 @@ class ParameterArrayAdapter extends ArrayAdapter<ParameterData> {
             parentViewHolder = (ParentViewHolder) view.getTag();
             //Log.i("MainActivity","position is "+position+" "+parentViewHolder.ref);
         }
+        //parentViewHolder.parameter_value.requestFocus();
         parentViewHolder.ref = position;
         parentViewHolder.parameter_name.setText(parameterDatas.get(position).name);
         parentViewHolder.parameter_value.setText(parameterDatas.get(position).value);

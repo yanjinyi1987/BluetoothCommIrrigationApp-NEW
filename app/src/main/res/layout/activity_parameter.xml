@@ -76,16 +76,18 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="保存"
-        android:id="@+id/write_to_database"
-        android:layout_alignParentRight="true"
+        android:text="退出"
+        android:id="@+id/return_to_mainactivity"
+        android:layout_alignParentLeft="true"
         android:layout_below="@+id/parameter_list"/>
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="退出"
-        android:id="@+id/return_to_mainactivity"
-        android:layout_alignParentLeft="true"
+        android:text="保存"
+        android:id="@+id/write_to_database"
+        android:layout_alignParentRight="true"
         android:layout_below="@+id/parameter_list"/>
+
+
 </RelativeLayout>

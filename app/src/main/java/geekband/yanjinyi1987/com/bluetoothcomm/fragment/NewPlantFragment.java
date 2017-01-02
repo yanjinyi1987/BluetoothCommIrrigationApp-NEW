@@ -14,6 +14,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import geekband.yanjinyi1987.com.bluetoothcomm.Database.DBService;
 import geekband.yanjinyi1987.com.bluetoothcomm.ParameterActivity;
 import geekband.yanjinyi1987.com.bluetoothcomm.R;
 
@@ -41,6 +42,7 @@ public class NewPlantFragment extends DialogFragment implements View.OnClickList
     private EditText mNewPlantName;
 
     private static Handler mHandleSpinner;
+    private static DBService mDBService;
 
     public NewPlantFragment() {
         // Required empty public constructor
@@ -54,9 +56,10 @@ public class NewPlantFragment extends DialogFragment implements View.OnClickList
      * @return A new instance of fragment NewPlantFragment.
      */
     // TODO: Rename and change types and number of parameters
-    public static NewPlantFragment newInstance(Handler handleSpinner) {
+    public static NewPlantFragment newInstance(Handler handleSpinner, DBService dbService) {
         NewPlantFragment fragment = new NewPlantFragment();
         mHandleSpinner = handleSpinner;
+        mDBService = dbService;
         return fragment;
     }
 
@@ -123,14 +126,25 @@ public class NewPlantFragment extends DialogFragment implements View.OnClickList
                 }
                 else {
                     //check the String and perform database operation
-
-                    //update activity UI
-                    Message msg = new Message();
-                    msg.what = ParameterActivity.UPDATE_UI;
-                    msg.obj = plantName;
-                    mHandleSpinner.sendMessage(msg);
-                    //退出
-                    dismiss();
+                    if(mDBService.checkPlantExist(plantName)) {
+                        //植物存在
+                        Toast.makeText(getActivity(),"植物\""+plantName+"\"已经存在!",Toast.LENGTH_LONG).show();
+                    }
+                    else {
+                        //更新数据库
+                        if(mDBService.createNewPlant(plantName)) {
+                            //update activity UI
+                            Message msg = new Message();
+                            msg.what = ParameterActivity.UPDATE_UI;
+                            msg.obj = plantName;
+                            mHandleSpinner.sendMessage(msg);
+                            //成功退出
+                            dismiss();
+                        }
+                        else {
+                            Toast.makeText(getActivity(),"创建植物失败，请重新输入",Toast.LENGTH_LONG).show();
+                        }
+                    }
                 }
                 break;
             default:

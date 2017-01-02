@@ -18,15 +18,16 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
-            android:windowSoftInputMode="adjustPan">
+            android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".ParameterActivity" />
+        <!--为了ListView中的EditText能正常工作，adjustPan需要被加入-->
+        <activity android:name=".ParameterActivity"
+            android:windowSoftInputMode="adjustPan" />
 
         <service android:name=".Database.DBService"/>
     </application>

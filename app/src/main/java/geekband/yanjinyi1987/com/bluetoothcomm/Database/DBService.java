@@ -12,13 +12,25 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by lexkde on 16-12-31.
+ * 不可以直接更新UI。
+ 虽然Service也是在主线程工作。但是其无法直接更改ui。
+ 间接的方法有很多的，可以参考android跨进程通信。
+ activity绑定Service
+ handler.sentMessage()
+ handler.post(new Runnable(){})
+ BroadcastReceiver
+ 异步通信机制
+
+ 作者：小小哲
+ 链接：https://www.zhihu.com/question/24109592/answer/88173757
+ 来源：知乎
+ 著作权归作者所有，转载请联系作者获得授权。
  */
 
 public class DBService extends Service{
@@ -26,54 +38,95 @@ public class DBService extends Service{
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+        Log.i("DBService","onBind");
         return new LocalBinder();
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
+        Log.i("DBService","onUnbind");
         return super.onUnbind(intent);
     }
 
     @Override
     public void onRebind(Intent intent) {
+        Log.i("DBService","onRebind");
         super.onRebind(intent);
     }
 
     @Override
     public void onCreate() {
+        Log.i("DBService","onCreate");
         super.onCreate();
     }
 
     @Override
     public void onDestroy() {
+        Log.i("DBService","onDestroy");
         super.onDestroy();
     }
 
     @Override
     public void onTrimMemory(int level) {
+        Log.i("DBService","onTrimMemory");
         super.onTrimMemory(level);
     }
 
     @Override
     public void onLowMemory() {
+        Log.i("DBService","onLowMemory");
         super.onLowMemory();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i("DBService","onStartCommand");
         return super.onStartCommand(intent, flags, startId);
     }
 
     public class LocalBinder extends Binder {
         public DBService getService() {
+            Log.i("DBService","getService");
             return DBService.this;
         }
     }
+
+    //function body
+    //测试植物是否存在
+    public boolean checkPlantExist(String plantName) {
+        PlantDBOperations mPlantDBOperations = new PlantDBOperations(DBService.this);
+        return mPlantDBOperations.checkItemExist(plantName);
+    }
+
+    //新建植物
+    public boolean createNewPlant(String plantName) {
+        PlantDBOperations mPlantDBOperations = new PlantDBOperations(DBService.this);
+        return mPlantDBOperations.createNewItem(plantName);
+    }
+
+    //获取数据库中的所有植物的名称
+    public List<String> getPlantsList() {
+        PlantDBOperations mPlantDBOperations = new PlantDBOperations(DBService.this);
+        return mPlantDBOperations.getPlantsList();
+    }
+
+    //读取植物灌溉参数
+    public List<String> getIrrigationParameters(String tableName,int growthTimeId) {
+        PlantDBOperations mPlantDBOperations = new PlantDBOperations(DBService.this);
+        return mPlantDBOperations.getParameters(tableName,growthTimeId);
+    }
+
+    //新建或更改灌溉参数
+    public boolean insertIrrigationParameters(String tableName,int growthTimeId, List<String> parameters) {
+        PlantDBOperations mPlantDBOperations = new PlantDBOperations(DBService.this);
+        return mPlantDBOperations.insertParameters(tableName,growthTimeId,parameters);
+    }
 }
 
+//估计每个植物是个table，然后section包括月份-主键；参数为sections
 class DBHelper extends SQLiteOpenHelper {
     public DBHelper(Context context) {
-        super(context, CityListOperations.DB_NAME,null,1);
+        super(context, PlantDBOperations.DB_NAME,null,1);
     }
 
     private static DBHelper mInstance; //single instance
@@ -86,38 +139,26 @@ class DBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        try {
-            db.execSQL("create table " +
-                    CityListOperations.TABLE_HE_XUN_CITY_LIST +
-                    "(" +
-                    CityListOperations.SECTION_CITY + " varchar(20) not null, " +
-                    CityListOperations.SECTION_COUNTRY + " varchar(20) not null, " +
-                    CityListOperations.SECTION_CITY_ID + " varchar(20) not null, " +
-                    CityListOperations.SECTION_LATITUDE + " varchar(20) not null, " +
-                    CityListOperations.SECTION_LONGITUDE + " varchar(20) not null, " +
-                    CityListOperations.SECTION_PROVINCE + " varchar(20) not null"+
-                    ")"
-            );
+        db.execSQL("create table " +
+                PlantDBOperations.TABLE_PLANT +
+                " (" +
+                PlantDBOperations.SECTION_PLANT_ID+" INTEGER PRIMARY KEY AUTOINCREMENT, "+
+                PlantDBOperations.SECTION_PLANT_NAME + " varchar(20) not null"+
+                ")"
+        );
 
-
-            db.execSQL("create table " +
-                    CityListOperations.TABLE_CHOSEN_CITY_LIST +
-                    "(" +
-                    CityListOperations.SECTION_CITY + " varchar(20) not null, " +
-                    CityListOperations.SECTION_COUNTRY + " varchar(20) not null, " +
-                    CityListOperations.SECTION_CITY_ID + " varchar(20) not null, " +
-                    CityListOperations.SECTION_LATITUDE + " varchar(20) not null, " +
-                    CityListOperations.SECTION_LONGITUDE + " varchar(20) not null, " +
-                    CityListOperations.SECTION_PROVINCE + " varchar(20) not null, "+
-                    CityListOperations.SECTION_WEATHER_JSON + " text null" +
-                    ")"
-            );
-        }catch (SQLiteException e) {
-            e.printStackTrace();
-        }
-        finally {
-            Log.i("SQLite","add table successfully");
-        }
+        db.execSQL("create table " +
+                PlantDBOperations.TABLE_PARAMETERS +
+                " (" +
+                PlantDBOperations.SECTION_PLANT_ID+" int not null, "+
+                PlantDBOperations.SECTION_GROWTH_TIME_ID + " int not null, "+
+                PlantDBOperations.SECTION_INITIAL_VALUE + " varchar(20) null, " +
+                PlantDBOperations.SECTION_TEMP_COEFFICIENT + " varchar(20) null, " +
+                PlantDBOperations.SECTION_TEMP_OFFSET + " varchar(20) null, " +
+                PlantDBOperations.SECTION_HUMIDITY_COEFFICIENT + " varchar(20) null, " +
+                PlantDBOperations.SECTION_SUNLIGHT_INTENSITY + " varchar(20) null" +
+                ")"
+        );
     }
 
     @Override
@@ -126,74 +167,60 @@ class DBHelper extends SQLiteOpenHelper {
     }
 }
 
-class CityListOperations {
+class PlantDBOperations {
+    //需要的方法
+    /*
+    * 1 更新表项参数
+    * 2 新建表项
+    * 3 获取数据库中的所有表的名称
+    * 4 读取表项参数
+    * 5 测试表是否存在 - check tableName
+    *
+    * 鉴于不能创建3维表或者动态的创建表，那么应该应该用外键的方式创建两个二维表来进行整体设计
+    * */
     public static final String DB_NAME = "IrrigationParameters.db";
-    public static final String TABLE_HE_XUN_CITY_LIST = "HeXunCityList";
-    public static final String TABLE_CHOSEN_CITY_LIST = "ChoosedCityList";
-    public static final String SECTION_CITY = "city";
-    public static final String SECTION_COUNTRY = "country";
-    public static final String SECTION_CITY_ID = "cityId";
-    public static final String SECTION_LATITUDE = "latitude";
-    public static final String SECTION_LONGITUDE = "longitude";
-    public static final String SECTION_PROVINCE = "province";
-    public static final String SECTION_WEATHER_JSON = "weather_json";
+    public static final String TABLE_PLANT = "plants";
+    public static final String TABLE_PARAMETERS = "parameters";
+    public static final String SECTION_PLANT_NAME = "PlantName";
+    public static final String SECTION_PLANT_ID = "PlantId";
+    public static final String SECTION_GROWTH_TIME_ID = "GrowthTimeId";
+    public static final String SECTION_INITIAL_VALUE = "InitialValue";
+    public static final String SECTION_TEMP_COEFFICIENT = "TempCoefficient";
+    public static final String SECTION_TEMP_OFFSET = "TempOffset";
+    public static final String SECTION_HUMIDITY_COEFFICIENT = "HumidityCoefficient";
+    public static final String SECTION_SUNLIGHT_INTENSITY = "SunlightIntensity";
 
     private DBHelper helper;
     private SQLiteDatabase db;
 
     Context mContext;
 
-    public CityListOperations(Context context) {
+    public PlantDBOperations(Context context) {
         helper = DBHelper.getInstance(context);
         db = helper.getWritableDatabase();
         mContext = context;
     }
 
-    public long insert_to_table_city(SQLiteDatabase db, String table_name, WeatherService.CityInfo city) {
-        //实例化常量值
-        ContentValues cValue = new ContentValues();
-        //添加用户名
-        cValue.put(SECTION_CITY, city.getCity());
-        //添加密码
-        cValue.put(SECTION_COUNTRY, city.getCnty());
-        //
-        cValue.put(SECTION_CITY_ID, city.getId());
-        //
-        cValue.put(SECTION_LATITUDE, city.getLat());
-        //
-        cValue.put(SECTION_LONGITUDE, city.getLon());
-        //
-        cValue.put(SECTION_PROVINCE, city.getProv());
-
-        //调用insert()方法插入数据
-        return db.insert(table_name, null, cValue);
-    }
-
-    public boolean insert_to_table_cityLists(SQLiteDatabase db, String table_name, List<WeatherService.CityInfo> cityList) {
-        for (WeatherService.CityInfo city : cityList
-                ) {
-            if(insert_to_table_city(db, table_name, city)==-1) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public boolean saveData(List<WeatherService.CityInfo> cityLists) {
-        Log.i(this.getClass().getSimpleName(),"save global city list into DB");
+    public boolean checkItemExist(String tableName) {
         synchronized (helper) {
             boolean result = false;
+            Cursor cursor = null;
             if (!db.isOpen()) {
                 db = helper.getWritableDatabase();
             }
-            db.beginTransaction();
+
             try {
-                db.execSQL("DELETE FROM "+TABLE_HE_XUN_CITY_LIST);
-                if(insert_to_table_cityLists(db, TABLE_HE_XUN_CITY_LIST, cityLists)) {
-                    db.setTransactionSuccessful();
-                    result=true;
-                }
-                else {
+                db.beginTransaction();
+                ArrayList<String> columns = new ArrayList<>();
+                columns.add(SECTION_PLANT_NAME);
+                //cursor = db.query(TABLE_PLANT,(String[])(columns.toArray()),null,null,null,null,null);
+                cursor = db.query(TABLE_PLANT,
+                        null,
+                        SECTION_PLANT_NAME+" = "+"\""+tableName+"\"",
+                        null, null, null, null);
+                if (cursor.moveToFirst()) {
+                    result = true;
+                } else {
                     result = false;
                 }
             } catch (SQLiteException e) {
@@ -203,194 +230,30 @@ class CityListOperations {
                 result = false;
                 e.printStackTrace();
             } finally {
-                db.endTransaction();
-                db.close();
-                return result;
-            }
-        }
-    }
-
-    public List<WeatherService.CityInfo> sendDatatoMemory() {
-        Log.i(this.getClass().getSimpleName(),"read global city list from db");
-        //Map<String, WeatherService.ProvinceList> provinceLists = new HashMap<>(); //define a Map
-        List<WeatherService.CityInfo> cityInfos = new ArrayList<>();
-        synchronized (helper) {
-            if (!db.isOpen()) {
-                db = helper.getWritableDatabase();
-            }
-            Cursor cursor = db.query(TABLE_HE_XUN_CITY_LIST, null, null, null, null, null, null); //get all rows
-            //String currentZXS = null;
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        WeatherService.CityInfo cityInfo = new WeatherService.CityInfo(cursor.getString(0),//city
-                                cursor.getString(1),//country
-                                cursor.getString(2),//cityId
-                                cursor.getString(3),//latitude
-                                cursor.getString(4),//longitude
-                                cursor.getString(5));//province
-
-                        cityInfos.add(cityInfo);
-
-//                        if (isZXS(cityInfo.getCity())) {
-//                            currentZXS = cityInfo.getCity();
-//                            provinceLists.put(currentZXS, new WeatherService.ProvinceList(currentZXS));
-//                        }
-//
-//                        if (TextUtils.equals("直辖市", cityInfo.getProv()) || TextUtils.equals("特别行政区", cityInfo.getProv())) {
-//                            provinceLists.get(currentZXS).getCities().add(cityInfo);
-//                        } else {
-//                            if (provinceLists.get(cityInfo.getProv()) == null) {
-//                                provinceLists.put(cityInfo.getProv(), new WeatherService.ProvinceList(cityInfo.getProv()));
-//                            }
-//                            provinceLists.get(cityInfo.getProv()).getCities().add(cityInfo);
-//                        }
-                    } while (cursor.moveToNext());
-                } else {
-                    Toast.makeText(mContext, "获取地区数据失败!", Toast.LENGTH_LONG).show();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                cursor.close();
-                db.close();
-            }
-        }
-        return cityInfos;
-    }
-
-    public List<WeatherService.CityInfo> getChoosedCities() {
-        List<WeatherService.CityInfo> cities = new ArrayList<>();
-        synchronized (helper) {
-            if (!db.isOpen()) {
-                db = helper.getWritableDatabase();
-            }
-            Cursor cursor = db.query(TABLE_CHOSEN_CITY_LIST, null, null, null, null, null, null); //get all rows
-            try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        WeatherService.CityInfo city = new WeatherService.CityInfo(cursor.getString(0),//city
-                                cursor.getString(1),//country
-                                cursor.getString(2),//cityId
-                                cursor.getString(3),//latitude
-                                cursor.getString(4),//longitude
-                                cursor.getString(5));//province
-
-                        cities.add(city);
-                    } while (cursor.moveToNext());
-                } else {
-                    Toast.makeText(mContext, "您还没有选择城市!", Toast.LENGTH_SHORT).show();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                cities = null;
-            } finally {
-                cursor.close();
-                db.close();
-                return cities;
-            }
-        }
-    }
-
-    public long saveChoosedCity(WeatherService.CityInfo city) {
-        long insertResult = -1;
-        synchronized (helper) {
-            if (!db.isOpen()) {
-                db = helper.getWritableDatabase();
-            }
-            Cursor cursor = db.query(TABLE_CHOSEN_CITY_LIST,
-                    null,
-                    SECTION_CITY_ID + "=" + "\"" + city.getId() + "\"", null, null, null, null);
-            try {
-                db.beginTransaction();
-                if (cursor.moveToFirst() == false) {
-                    insertResult = insert_to_table_city(db, TABLE_CHOSEN_CITY_LIST, city);
-                }
-                db.setTransactionSuccessful();
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                db.endTransaction();
-                cursor.close();
-                db.close();
-            }
-        }
-        return insertResult;
-    }
-
-    public int deleteChoosedCity(String cityId) {
-        int result = 0;
-        synchronized (helper) {
-            if (!db.isOpen()) {
-                db = helper.getWritableDatabase();
-            }
-            try {
-                db.beginTransaction();
-                result = db.delete(TABLE_CHOSEN_CITY_LIST, SECTION_CITY_ID + "=" + "\"" + cityId + "\"", null);
-                db.setTransactionSuccessful();
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                db.endTransaction();
-                db.close();
-            }
-        }
-        return result;
-    }
-
-    public long cacheWeathers(ArrayList<String> weatherJsons) {
-
-        long insertResult = -1;
-        synchronized (helper) {
-            if (!db.isOpen()) {
-                db = helper.getWritableDatabase();
-            }
-            try {
-                db.beginTransaction();
-                for (String weatherJson: weatherJsons
-                        ) {
-                    insertResult=-1;
-                    Gson gson = new Gson();
-                    HeXunWeatherInfo heXunWeatherInfo = gson.fromJson(weatherJson, HeXunWeatherInfo.class);
-                    String cityId = heXunWeatherInfo.heWeatherDS0300.get(0).basic.id;
-                    String cityName = heXunWeatherInfo.heWeatherDS0300.get(0).basic.city;
-                    Log.i("cacheWeathers",cityName);
-                    Cursor cursor = db.query(TABLE_CHOSEN_CITY_LIST,
-                            null,
-                            SECTION_CITY_ID + "=" + "\"" + cityId + "\"",
-                            null, null, null, null);
-                    if (!cursor.moveToFirst()) {
-                        ContentValues contentValues = new ContentValues();
-                        contentValues.put(SECTION_WEATHER_JSON, weatherJson);
-                        insertResult = db.update(TABLE_CHOSEN_CITY_LIST,
-                                contentValues,
-                                SECTION_CITY_ID + "=" + "\"" + cityId + "\"",
-                                null);
-                    }
+                if(cursor!=null) {
                     cursor.close();
                 }
-                db.setTransactionSuccessful();
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
                 db.endTransaction();
                 db.close();
-                return insertResult;
+                return result;
             }
         }
-
     }
 
-
-    public int syncdelete(String cityId) {
-        int result = 0;
+    public boolean createNewItem(String item_name) {
+        Log.i(this.getClass().getSimpleName(),"create table "+item_name+" from db");
+        List<String> parameterList = null;
+        boolean result = false;
         synchronized (helper) {
             if (!db.isOpen()) {
                 db = helper.getWritableDatabase();
             }
             try {
                 db.beginTransaction();
-                result = db.delete(TABLE_CHOSEN_CITY_LIST, SECTION_CITY_ID + "=" + "\"" + cityId + "\"", null);
+                ContentValues cValue = new ContentValues();
+                cValue.put(SECTION_PLANT_NAME,item_name);
+                db.insert(TABLE_PLANT,null,cValue);
+                result = true;
                 db.setTransactionSuccessful();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -401,24 +264,105 @@ class CityListOperations {
             }
         }
     }
-
-    public int updateCachedWeather(String cityId, String weatherJson) {
+    public long insert_to_table_parameters(SQLiteDatabase db,
+                                           String table_name,
+                                           int plantId,
+                                           int growthTimeId,
+                                           List<String> parameters) {
         //实例化常量值
-        int result = 0;
         ContentValues cValue = new ContentValues();
+        cValue.put(SECTION_PLANT_ID,plantId);
+        //
+        cValue.put(SECTION_GROWTH_TIME_ID,growthTimeId);
+        //
+        cValue.put(SECTION_INITIAL_VALUE, parameters.get(0));
+        //
+        cValue.put(SECTION_TEMP_COEFFICIENT, parameters.get(1));
+        //
+        cValue.put(SECTION_TEMP_OFFSET, parameters.get(2));
+        //
+        cValue.put(SECTION_HUMIDITY_COEFFICIENT, parameters.get(3));
+        //
+        cValue.put(SECTION_SUNLIGHT_INTENSITY, parameters.get(4));
+
+        //调用insert()方法插入数据
+        return db.insert(table_name, null, cValue);
+    }
+
+    public int getPlantID(String itemName) {
+        Cursor cursor = db.query(TABLE_PLANT,
+                null,
+                SECTION_PLANT_NAME+" = "+"\""+itemName+"\"",
+                null, null, null, null);
+        int plantID=-1;
+        if(cursor.moveToFirst()) {
+            plantID = cursor.getInt(0);
+        }
+        cursor.close();
+        return plantID;
+    }
+
+    public boolean insertParameters(String itemName,int growthTimeId, List<String> parameters) {
+        Log.i(this.getClass().getSimpleName(),"save parameters into DB "+itemName+"\t"+growthTimeId);
+        long insertResult = -1;
+        Cursor cursor = null;
         synchronized (helper) {
+            boolean result = false;
             if (!db.isOpen()) {
                 db = helper.getWritableDatabase();
             }
-            cValue.put(SECTION_WEATHER_JSON, weatherJson);
+
             try {
                 db.beginTransaction();
-                //调用update()方法插入数据
-                result = db.update(TABLE_CHOSEN_CITY_LIST, cValue, SECTION_CITY_ID + "=" + "\"" + cityId + "\"", null);
-                db.setTransactionSuccessful();
+                int plantID = getPlantID(itemName);
+                if(plantID!=-1) {
+                    cursor = db.query(TABLE_PARAMETERS,
+                            null,
+                            SECTION_GROWTH_TIME_ID + "=" + growthTimeId +" AND "+SECTION_PLANT_ID + "=" + plantID,
+                            null, null, null, null);
+
+                    if (cursor.moveToFirst()) {
+                        //使用update
+                        ContentValues cValue = new ContentValues();
+                        //
+                        cValue.put(SECTION_INITIAL_VALUE, parameters.get(0));
+                        //
+                        cValue.put(SECTION_TEMP_COEFFICIENT, parameters.get(1));
+                        //
+                        cValue.put(SECTION_TEMP_OFFSET, parameters.get(2));
+                        //
+                        cValue.put(SECTION_HUMIDITY_COEFFICIENT, parameters.get(3));
+                        //
+                        cValue.put(SECTION_SUNLIGHT_INTENSITY, parameters.get(4));
+                        insertResult = db.update(TABLE_PARAMETERS,
+                                cValue,
+                                SECTION_GROWTH_TIME_ID + " = " + growthTimeId+" AND "+SECTION_PLANT_ID + "=" + plantID,
+                                null);
+                        if (insertResult == -1) {
+                            result = false;
+                        } else {
+                            db.setTransactionSuccessful();
+                            result = true;
+                        }
+                    } else {
+                        if (insert_to_table_parameters(db, TABLE_PARAMETERS, plantID,growthTimeId, parameters) != -1) {
+                            db.setTransactionSuccessful();
+                            result = true;
+                        } else {
+                            result = false;
+                        }
+                    }
+                }
+            } catch (SQLiteException e) {
+                result = false;
+                e.printStackTrace();
             } catch (Exception e) {
+                result = false;
                 e.printStackTrace();
             } finally {
+                if(cursor!=null) {
+                    cursor.close();
+                }
                 db.endTransaction();
                 db.close();
                 return result;
@@ -426,30 +370,68 @@ class CityListOperations {
         }
     }
 
-    public List<String> getCachedWeathers() {
-        ArrayList<String> weatherJson = new ArrayList<>();
+    public List<String> getParameters(String itemName,int growthTimeId) {
+        Log.i(this.getClass().getSimpleName(),"read parameters from db");
+        List<String> parameterList = null;
+        Cursor cursor = null;
         synchronized (helper) {
             if (!db.isOpen()) {
                 db = helper.getWritableDatabase();
             }
-            Cursor cursor = db.query(TABLE_CHOSEN_CITY_LIST, null,
-                    null,
-                    null, null, null, null); //get all rows
             try {
-                if (cursor.moveToFirst()) {
-                    do {
-                        weatherJson.add(cursor.getString(6));
-                    }while(cursor.moveToNext());
-                } else {
-                    //Toast.makeText(mContext,"您还没有选择城市!",Toast.LENGTH_SHORT).show();
+                db.beginTransaction();
+                int plantID = getPlantID(itemName);
+                cursor = db.rawQuery("SELECT * FROM "+TABLE_PARAMETERS+" WHERE "+SECTION_GROWTH_TIME_ID+" = "+growthTimeId+" AND " +
+                        SECTION_PLANT_ID+"="+plantID,null);
+                if(cursor.moveToFirst()) {
+                    parameterList = new ArrayList<>();
+                    parameterList.add(cursor.getString(2));
+                    parameterList.add(cursor.getString(3));
+                    parameterList.add(cursor.getString(4));
+                    parameterList.add(cursor.getString(5));
+                    parameterList.add(cursor.getString(6));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-                cursor.close();
+                if(cursor!=null) {
+                    cursor.close();
+                }
+                db.endTransaction();
                 db.close();
-                return weatherJson;
             }
         }
+        return parameterList;
+    }
+
+    public List<String> getPlantsList() {
+        Log.i(this.getClass().getSimpleName(),"read plants list from db");
+        List<String> plantsList = null;
+        Cursor cursor = null;
+        synchronized (helper) {
+            if (!db.isOpen()) {
+                db = helper.getWritableDatabase();
+
+            }
+            try {
+                db.beginTransaction();
+                cursor = db.rawQuery("SELECT * FROM " + TABLE_PLANT,null);
+                if(cursor.moveToFirst()) {
+                    plantsList = new ArrayList<>();
+                    do {
+                        plantsList.add(cursor.getString(1));
+                    }while(cursor.moveToNext());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if(cursor!=null) {
+                    cursor.close();
+                }
+                db.endTransaction();
+                db.close();
+            }
+        }
+        return plantsList;
     }
 }
